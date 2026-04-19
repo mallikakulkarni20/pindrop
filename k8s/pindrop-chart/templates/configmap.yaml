@@ -1,0 +1,34 @@
+{{/*
+=============================================================================
+CONFIGMAP TEMPLATE
+=============================================================================
+This template creates a ConfigMap for non-sensitive configuration.
+
+Template syntax explained:
+- {{ .Values.xxx }}     = Read value from values.yaml
+- {{ include "x" . }}   = Call helper function from _helpers.tpl
+- {{- if condition }}   = Conditional (- trims whitespace)
+- {{- range $k, $v }}   = Loop over map/list
+- {{ toYaml x | nindent 4 }} = Convert to YAML with indentation
+=============================================================================
+*/}}
+
+{{- if .Values.configMap.create }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "pindrop.fullname" . }}-config
+  namespace: {{ include "pindrop.namespace" . }}
+  labels:
+    {{- include "pindrop.labels" . | nindent 4 }}
+data:
+  # Backend environment variables
+  NODE_ENV: {{ .Values.backend.env.NODE_ENV | quote }}
+  PORT: {{ .Values.backend.env.PORT | quote }}
+  DB_SSL: {{ .Values.backend.env.DB_SSL | quote }}
+  
+  # Add any custom data from values.yaml
+  {{- range $key, $value := .Values.configMap.data }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
+{{- end }}

@@ -1,0 +1,23 @@
+{{/*
+=============================================================================
+BACKEND SERVICE TEMPLATE
+=============================================================================
+Creates a Service to expose the backend pods.
+*/}}
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "pindrop.fullname" . }}-backend
+  namespace: {{ include "pindrop.namespace" . }}
+  labels:
+    {{- include "pindrop.backendLabels" . | nindent 4 }}
+spec:
+  type: {{ .Values.backend.service.type }}
+  selector:
+    {{- include "pindrop.backendSelectorLabels" . | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.backend.service.port }}
+      targetPort: {{ .Values.backend.service.port }}
+      protocol: TCP

@@ -1,0 +1,70 @@
+# =============================================================================
+# HELM CHART METADATA
+# =============================================================================
+# Chart.yaml defines metadata about this Helm chart.
+#
+# What is a Helm Chart?
+# - A Helm chart is a package of pre-configured Kubernetes resources
+# - Think of it like a "template" for deploying your application
+# - Similar to how Docker images package applications, Helm charts package
+#   Kubernetes deployments
+#
+# Why use Helm?
+# 1. TEMPLATING: Use variables instead of hardcoded values
+#    - Without Helm: replicas: 3 (hardcoded)
+#    - With Helm: replicas: {{ .Values.backend.replicas }} (configurable)
+#
+# 2. ENVIRONMENT MANAGEMENT: Same chart, different configs
+#    - Dev: helm install myapp . -f values-dev.yaml (1 replica, low resources)
+#    - Prod: helm install myapp . -f values-prod.yaml (3 replicas, high resources)
+#
+# 3. VERSIONING: Track chart versions and rollback easily
+#    - helm rollback myapp 1 (go back to previous version)
+#
+# 4. DEPENDENCY MANAGEMENT: Charts can depend on other charts
+#    - Your app chart could depend on a PostgreSQL chart
+# =============================================================================
+
+# API version of the Chart.yaml schema
+# v2 is for Helm 3 (current version)
+apiVersion: v2
+
+# Name of the chart (used in helm install <release-name> ./<chart-name>)
+name: pindrop
+
+# Human-readable description
+description: |
+  Helm chart for Pindrop Travel Application.
+  Deploys frontend (React/nginx) and backend (Node.js/Express) to Kubernetes.
+
+# Chart type: "application" or "library"
+# - application: Deploys resources to Kubernetes
+# - library: Provides utilities for other charts (no deployments)
+type: application
+
+# Version of the CHART (not the application)
+# Increment this when you change the chart (templates, values, etc.)
+# Uses semantic versioning: MAJOR.MINOR.PATCH
+version: 0.1.0
+
+# Version of the APPLICATION being deployed
+# This is YOUR app version (matches your Docker image tags)
+appVersion: "1.0.0"
+
+# Keywords for searching (optional)
+keywords:
+  - pindrop
+  - travel
+  - nodejs
+  - react
+
+# Maintainer information (optional)
+maintainers:
+  - name: Mallika Kulkarni
+    email: mallika.kulkarni20@gmail.com
+
+# Home page of the project (optional)
+home: https://github.com/mallikakulkarni/pindrop
+
+# Icon URL (optional - displayed in Helm UIs)
+# icon: https://example.com/icon.png

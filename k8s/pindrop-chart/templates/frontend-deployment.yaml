@@ -1,0 +1,80 @@
+{{/*
+=============================================================================
+FRONTEND DEPLOYMENT TEMPLATE
+=============================================================================
+Deploys the frontend nginx pods serving the React application.
+*/}}
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pindrop.fullname" . }}-frontend
+  namespace: {{ include "pindrop.namespace" . }}
+  labels:
+    {{- include "pindrop.frontendLabels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.frontend.replicas }}
+  
+  selector:
+    matchLabels:
+      {{- include "pindrop.frontendSelectorLabels" . | nindent 6 }}
+  
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  
+  template:
+    metadata:
+      labels:
+        {{- include "pindrop.frontendSelectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: frontend
+          image: {{ include "pindrop.frontendImage" . }}
+          imagePullPolicy: {{ .Values.frontend.image.pullPolicy }}
+          
+          ports:
+            - name: http
+              containerPort: {{ .Values.frontend.service.port }}
+              protocol: TCP
+          
+          resources:
+            {{- toYaml .Values.frontend.resources | nindent 12 }}
+          
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.frontend.healthCheck.path }}
+              port: {{ .Values.frontend.healthCheck.port }}
+            initialDelaySeconds: {{ .Values.frontend.healthCheck.initialDelaySeconds }}
+            periodSeconds: {{ .Values.frontend.healthCheck.periodSeconds }}
+            timeoutSeconds: 3
+            failureThreshold: 3
+          
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.frontend.healthCheck.path }}
+              port: {{ .Values.frontend.healthCheck.port }}
+            initialDelaySeconds: 3
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+      
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 10
+      
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

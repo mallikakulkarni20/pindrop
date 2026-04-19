@@ -1,0 +1,139 @@
+# =============================================================================
+# HELM VALUES - PRODUCTION OVERRIDES
+# =============================================================================
+# This file contains PRODUCTION-SPECIFIC configuration overrides.
+# Only include values that DIFFER from the defaults in values.yaml.
+#
+# Usage:
+#   helm install pindrop ./pindrop-chart -f values-prod.yaml
+#
+# Or combine with secrets:
+#   helm install pindrop ./pindrop-chart \
+#     -f values-prod.yaml \
+#     --set secrets.data.SUPABASE_URL=xxx \
+#     --set secrets.data.JWT_SECRET=xxx
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Backend - Production Settings
+# -----------------------------------------------------------------------------
+backend:
+  # Scale up for high availability
+  # 3 replicas ensures service continues if 1-2 pods fail
+  replicas: 3
+  
+  # Production image settings
+  image:
+    # Use specific version tags in production (not 'latest')
+    # tag: "v1.0.0"
+    tag: latest
+    # Always pull to ensure latest image in production
+    # pullPolicy: Always
+    pullPolicy: Never  # Keep Never for Minikube demo
+  
+  # Increase resources for production traffic
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "200m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+  
+  # Production environment
+  env:
+    NODE_ENV: "production"
+    PORT: "3001"
+    DB_SSL: "true"  # Enable SSL for production database
+
+# -----------------------------------------------------------------------------
+# Frontend - Production Settings
+# -----------------------------------------------------------------------------
+frontend:
+  # Scale frontend for redundancy
+  replicas: 2
+  
+  # Production image settings
+  image:
+    # tag: "v1.0.0"
+    tag: latest
+    # pullPolicy: Always
+    pullPolicy: Never  # Keep Never for Minikube demo
+  
+  # Increase resources for production
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+
+# -----------------------------------------------------------------------------
+# Ingress - Production Settings
+# -----------------------------------------------------------------------------
+ingress:
+  enabled: true
+  className: nginx
+  
+  # Production host (your domain)
+  # host: "pindrop.example.com"
+  host: ""
+  
+  # Enable TLS in production
+  tls:
+    enabled: false  # Set to true when you have a certificate
+    # secretName: "pindrop-tls"
+  
+  # Additional production annotations
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    # Rate limiting for production
+    # nginx.ingress.kubernetes.io/limit-rps: "100"
+
+# -----------------------------------------------------------------------------
+# Secrets - Production Settings
+# -----------------------------------------------------------------------------
+secrets:
+  # In production, secrets should be created manually or via CI/CD
+  # Don't store real secrets in values files!
+  create: false
+  name: "pindrop-secrets"
+
+# =============================================================================
+# PRODUCTION DEPLOYMENT NOTES
+# =============================================================================
+# 
+# For a real production deployment, you would also:
+#
+# 1. Use a container registry (not local images):
+#    backend:
+#      image:
+#        repository: your-registry.com/pindrop-backend
+#        tag: "v1.0.0"
+#        pullPolicy: Always
+#
+# 2. Create secrets separately:
+#    kubectl create secret generic pindrop-secrets \
+#      --from-literal=SUPABASE_URL=xxx \
+#      --from-literal=JWT_SECRET=xxx
+#
+# 3. Enable TLS:
+#    ingress:
+#      tls:
+#        enabled: true
+#        secretName: pindrop-tls
+#
+# 4. Add Horizontal Pod Autoscaling:
+#    backend:
+#      autoscaling:
+#        enabled: true
+#        minReplicas: 3
+#        maxReplicas: 10
+#        targetCPUUtilizationPercentage: 80
+#
+# 5. Add PodDisruptionBudget for availability during updates
+# =============================================================================

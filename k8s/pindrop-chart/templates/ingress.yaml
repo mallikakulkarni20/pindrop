@@ -1,0 +1,67 @@
+{{/*
+=============================================================================
+INGRESS TEMPLATE
+=============================================================================
+Creates an Ingress resource for external HTTP access.
+Routes:
+- /api/*  → backend service
+- /health → backend service  
+- /*      → frontend service
+=============================================================================
+*/}}
+
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "pindrop.fullname" . }}-ingress
+  namespace: {{ include "pindrop.namespace" . }}
+  labels:
+    {{- include "pindrop.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.host }}
+      secretName: {{ .Values.ingress.tls.secretName }}
+  {{- end }}
+  
+  rules:
+    - {{- if .Values.ingress.host }}
+      host: {{ .Values.ingress.host }}
+      {{- end }}
+      http:
+        paths:
+          # API routes → Backend
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "pindrop.fullname" . }}-backend
+                port:
+                  number: {{ .Values.backend.service.port }}
+          
+          # Health check → Backend
+          - path: /health
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "pindrop.fullname" . }}-backend
+                port:
+                  number: {{ .Values.backend.service.port }}
+          
+          # All other routes → Frontend
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "pindrop.fullname" . }}-frontend
+                port:
+                  number: {{ .Values.frontend.service.port }}
+{{- end }}

@@ -1,0 +1,23 @@
+{{/*
+=============================================================================
+FRONTEND SERVICE TEMPLATE
+=============================================================================
+Creates a Service to expose the frontend pods.
+*/}}
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "pindrop.fullname" . }}-frontend
+  namespace: {{ include "pindrop.namespace" . }}
+  labels:
+    {{- include "pindrop.frontendLabels" . | nindent 4 }}
+spec:
+  type: {{ .Values.frontend.service.type }}
+  selector:
+    {{- include "pindrop.frontendSelectorLabels" . | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.frontend.service.port }}
+      targetPort: {{ .Values.frontend.service.port }}
+      protocol: TCP

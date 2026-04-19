@@ -1,0 +1,79 @@
+=============================================================================
+  PINDROP HELM CHART DEPLOYMENT NOTES
+=============================================================================
+
+Congratulations! Pindrop has been deployed to Kubernetes.
+
+RELEASE: {{ .Release.Name }}
+NAMESPACE: {{ include "pindrop.namespace" . }}
+CHART VERSION: {{ .Chart.Version }}
+APP VERSION: {{ .Chart.AppVersion }}
+
+-----------------------------------------------------------------------------
+  DEPLOYMENT STATUS
+-----------------------------------------------------------------------------
+
+Backend:
+  - Replicas: {{ .Values.backend.replicas }}
+  - Image: {{ include "pindrop.backendImage" . }}
+
+Frontend:
+  - Replicas: {{ .Values.frontend.replicas }}
+  - Image: {{ include "pindrop.frontendImage" . }}
+
+{{- if .Values.ingress.enabled }}
+Ingress:
+  - Enabled: Yes
+  - Class: {{ .Values.ingress.className }}
+  {{- if .Values.ingress.host }}
+  - Host: {{ .Values.ingress.host }}
+  {{- else }}
+  - Host: * (all hosts)
+  {{- end }}
+{{- end }}
+
+-----------------------------------------------------------------------------
+  ACCESS THE APPLICATION
+-----------------------------------------------------------------------------
+
+1. Get the application URL:
+{{- if .Values.ingress.enabled }}
+   {{- if .Values.ingress.host }}
+   http://{{ .Values.ingress.host }}
+   {{- else }}
+   The Ingress is configured for all hosts.
+   {{- end }}
+{{- end }}
+
+2. For local Minikube testing (macOS), use port-forwarding:
+
+   # Forward frontend
+   kubectl port-forward svc/{{ include "pindrop.fullname" . }}-frontend 8080:80 -n {{ include "pindrop.namespace" . }} &
+
+   # Forward backend
+   kubectl port-forward svc/{{ include "pindrop.fullname" . }}-backend 3001:3001 -n {{ include "pindrop.namespace" . }} &
+
+   # Access at:
+   http://localhost:8080
+
+-----------------------------------------------------------------------------
+  USEFUL COMMANDS
+-----------------------------------------------------------------------------
+
+# Check pod status
+kubectl get pods -n {{ include "pindrop.namespace" . }}
+
+# View logs
+kubectl logs -l app.kubernetes.io/component=backend -n {{ include "pindrop.namespace" . }}
+kubectl logs -l app.kubernetes.io/component=frontend -n {{ include "pindrop.namespace" . }}
+
+# Upgrade with new values
+helm upgrade {{ .Release.Name }} ./pindrop-chart -f values-prod.yaml
+
+# Rollback to previous version
+helm rollback {{ .Release.Name }} 1
+
+# Uninstall
+helm uninstall {{ .Release.Name }} -n {{ include "pindrop.namespace" . }}
+
+=============================================================================
