@@ -1,0 +1,112 @@
+# =============================================================================
+# KUBERNETES DEPLOYMENT - FRONTEND
+# =============================================================================
+# This Deployment manages the frontend Pods running nginx to serve the
+# React application (static HTML/JS/CSS files).
+#
+# Key differences from backend:
+# - Runs nginx instead of Node.js
+# - Serves static files (no database connections)
+# - Lower resource requirements
+# - Different health check endpoint
+#
+# Usage:
+#   kubectl apply -f frontend-deployment.yaml -n pindrop
+#   kubectl get deployments -n pindrop
+#   kubectl get pods -n pindrop -l component=frontend
+# =============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: pindrop
+  labels:
+    app: pindrop
+    component: frontend
+spec:
+  # ---------------------------------------------------------------------------
+  # Replica Configuration
+  # ---------------------------------------------------------------------------
+  # For development: 1 replica is sufficient
+  # For production: 2+ for redundancy (frontend is stateless, easy to scale)
+  replicas: 1
+  
+  # ---------------------------------------------------------------------------
+  # Selector
+  # ---------------------------------------------------------------------------
+  selector:
+    matchLabels:
+      app: pindrop
+      component: frontend
+  
+  # ---------------------------------------------------------------------------
+  # Update Strategy
+  # ---------------------------------------------------------------------------
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  
+  # ---------------------------------------------------------------------------
+  # Pod Template
+  # ---------------------------------------------------------------------------
+  template:
+    metadata:
+      labels:
+        app: pindrop
+        component: frontend
+    spec:
+      containers:
+        - name: frontend
+          # Image built locally for Minikube
+          # The image has VITE_API_URL=/api baked in at build time
+          image: pindrop-frontend:latest
+          
+          # Use local image (Minikube)
+          imagePullPolicy: Never
+          
+          # nginx serves on port 80
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          
+          # -------------------------------------------------------------------
+          # Resource Limits
+          # -------------------------------------------------------------------
+          # Frontend (nginx) needs less resources than backend
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+          
+          # -------------------------------------------------------------------
+          # Health Checks
+          # -------------------------------------------------------------------
+          # Liveness: Is nginx running?
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 30
+            timeoutSeconds: 3
+            failureThreshold: 3
+          
+          # Readiness: Is nginx ready to serve traffic?
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 3
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+      
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 10

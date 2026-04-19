@@ -1,0 +1,142 @@
+# =============================================================================
+# KUBERNETES INGRESS
+# =============================================================================
+# An Ingress manages external HTTP(S) access to services in the cluster.
+# It provides:
+# - URL-based routing (path-based or host-based)
+# - TLS/SSL termination
+# - Load balancing
+#
+# How it works:
+# 1. External request comes to the Ingress Controller (e.g., nginx)
+# 2. Ingress Controller looks up rules in Ingress resources
+# 3. Routes traffic to the appropriate Service based on rules
+#
+# Our routing strategy:
+# - /api/*  → backend service (API calls)
+# - /*      → frontend service (React app)
+#
+# This matches the professor's suggested approach:
+# "anything that matches /api/* will be routed to the backend,
+#  otherwise the frontend will be delivered"
+#
+# Prerequisites:
+# - Ingress Controller must be installed (Minikube: `minikube addons enable ingress`)
+#
+# Usage:
+#   kubectl apply -f ingress.yaml -n pindrop
+#   kubectl get ingress -n pindrop
+#   kubectl describe ingress pindrop-ingress -n pindrop
+# =============================================================================
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pindrop-ingress
+  namespace: pindrop
+  labels:
+    app: pindrop
+  annotations:
+    # -------------------------------------------------------------------------
+    # Ingress Controller Configuration
+    # -------------------------------------------------------------------------
+    # Specify which ingress controller should handle this Ingress
+    kubernetes.io/ingress.class: nginx
+    
+    # -------------------------------------------------------------------------
+    # nginx-specific Annotations
+    # -------------------------------------------------------------------------
+    # Rewrite rules for /api/* routing
+    # When request comes to /api/health, forward as /health to backend
+    # The backend routes don't have /api prefix in their paths
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    
+    # Enable CORS (Cross-Origin Resource Sharing) for API requests
+    # This allows the frontend to make requests to the backend
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    
+    # Proxy settings for WebSocket support (if needed for chat)
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+spec:
+  # ---------------------------------------------------------------------------
+  # Ingress Class (Kubernetes 1.18+)
+  # ---------------------------------------------------------------------------
+  # Specifies which Ingress controller should handle this Ingress
+  ingressClassName: nginx
+  
+  # ---------------------------------------------------------------------------
+  # Routing Rules
+  # ---------------------------------------------------------------------------
+  rules:
+    # Host-based routing (optional)
+    # If you want to use a specific hostname, uncomment and modify:
+    # - host: pindrop.local
+    - http:
+        paths:
+          # -------------------------------------------------------------------
+          # API Routes → Backend
+          # -------------------------------------------------------------------
+          # All requests starting with /api go to the backend service
+          # Order matters! More specific paths should come first
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 3001
+          
+          # Health endpoint for the backend (direct access)
+          - path: /health
+            pathType: Exact
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 3001
+          
+          # -------------------------------------------------------------------
+          # All Other Routes → Frontend
+          # -------------------------------------------------------------------
+          # Everything else goes to the frontend (React app)
+          # The frontend nginx handles SPA routing (serves index.html for all routes)
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+
+# =============================================================================
+# TRAFFIC FLOW DIAGRAM
+# =============================================================================
+#
+#   Browser Request
+#        │
+#        ▼
+#   ┌─────────────────────────────────────────────────────────────┐
+#   │                    INGRESS CONTROLLER                        │
+#   │                   (nginx-ingress-controller)                 │
+#   │                                                              │
+#   │    Path: /api/*   ──────────────▶  backend:3001             │
+#   │    Path: /health  ──────────────▶  backend:3001             │
+#   │    Path: /*       ──────────────▶  frontend:80              │
+#   │                                                              │
+#   └─────────────────────────────────────────────────────────────┘
+#        │                                    │
+#        ▼                                    ▼
+#   ┌──────────────┐                   ┌──────────────┐
+#   │   Backend    │                   │   Frontend   │
+#   │   Service    │                   │   Service    │
+#   │  (ClusterIP) │                   │  (ClusterIP) │
+#   └──────┬───────┘                   └──────┬───────┘
+#          │                                   │
+#          ▼                                   ▼
+#   ┌──────────────┐                   ┌──────────────┐
+#   │ Backend Pods │                   │Frontend Pods │
+#   │  (Express)   │                   │   (nginx)    │
+#   └──────────────┘                   └──────────────┘
+#
+# =============================================================================

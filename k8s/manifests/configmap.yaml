@@ -1,0 +1,55 @@
+# =============================================================================
+# KUBERNETES CONFIGMAP
+# =============================================================================
+# A ConfigMap stores non-sensitive configuration data as key-value pairs.
+# Pods can consume ConfigMaps as environment variables or mounted files.
+#
+# Why use ConfigMaps?
+# - Separation of concerns: Configuration is separate from container images
+# - Environment flexibility: Same image, different configs for dev/staging/prod
+# - Easy updates: Change config without rebuilding images
+#
+# What goes in ConfigMap vs Secrets?
+# - ConfigMap: Non-sensitive data (ports, feature flags, URLs)
+# - Secrets: Sensitive data (passwords, API keys, tokens)
+#
+# Usage:
+#   kubectl apply -f configmap.yaml -n pindrop
+#   kubectl get configmaps -n pindrop
+#   kubectl describe configmap pindrop-config -n pindrop
+# =============================================================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pindrop-config
+  namespace: pindrop
+  labels:
+    app: pindrop
+data:
+  # -------------------------------------------------------------------------
+  # Backend Configuration
+  # -------------------------------------------------------------------------
+  # These values are injected as environment variables into the backend pods
+  
+  # Node.js environment mode
+  # "production" enables optimizations and disables verbose error messages
+  NODE_ENV: "production"
+  
+  # Port the backend listens on (inside the container)
+  PORT: "3001"
+  
+  # Database SSL setting
+  # "false" for local/Minikube testing, "true" for production with SSL
+  DB_SSL: "false"
+  
+  # -------------------------------------------------------------------------
+  # Frontend Configuration (for reference - baked in at build time)
+  # -------------------------------------------------------------------------
+  # Note: These are here for documentation. The frontend reads VITE_API_URL
+  # at BUILD time, not runtime. We set it via --build-arg when building the image.
+  
+  # API URL that frontend uses to reach backend
+  # In Kubernetes with Ingress, this is "/api" (relative path)
+  # The Ingress routes /api/* requests to the backend service
+  VITE_API_URL: "/api"

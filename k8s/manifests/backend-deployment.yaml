@@ -1,0 +1,159 @@
+# =============================================================================
+# KUBERNETES DEPLOYMENT - BACKEND
+# =============================================================================
+# A Deployment manages a set of identical Pods (replicas) and handles:
+# - Creating the specified number of Pod replicas
+# - Replacing failed Pods automatically (self-healing)
+# - Rolling updates when you deploy new versions
+# - Rollbacks if something goes wrong
+#
+# Key concepts:
+# - replicas: How many copies of the Pod to run
+# - selector: How the Deployment finds which Pods to manage
+# - template: The Pod specification (what each Pod looks like)
+#
+# Usage:
+#   kubectl apply -f backend-deployment.yaml -n pindrop
+#   kubectl get deployments -n pindrop
+#   kubectl get pods -n pindrop
+#   kubectl logs -l app=pindrop,component=backend -n pindrop
+# =============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: pindrop
+  labels:
+    # Labels help organize and select resources
+    app: pindrop
+    component: backend
+spec:
+  # ---------------------------------------------------------------------------
+  # Replica Configuration
+  # ---------------------------------------------------------------------------
+  # Number of Pod replicas to maintain
+  # For development/Minikube: 1 is sufficient
+  # For production: 2-3+ for high availability
+  replicas: 1
+  
+  # ---------------------------------------------------------------------------
+  # Selector
+  # ---------------------------------------------------------------------------
+  # The Deployment uses this selector to find Pods it owns
+  # MUST match the labels in template.metadata.labels
+  selector:
+    matchLabels:
+      app: pindrop
+      component: backend
+  
+  # ---------------------------------------------------------------------------
+  # Update Strategy
+  # ---------------------------------------------------------------------------
+  # How to handle updates when deploying new versions
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      # Maximum number of Pods that can be created over the desired number
+      maxSurge: 1
+      # Maximum number of Pods that can be unavailable during update
+      maxUnavailable: 0
+  
+  # ---------------------------------------------------------------------------
+  # Pod Template
+  # ---------------------------------------------------------------------------
+  # Defines what each Pod looks like
+  template:
+    metadata:
+      labels:
+        # These labels MUST match selector.matchLabels
+        app: pindrop
+        component: backend
+    spec:
+      # -----------------------------------------------------------------------
+      # Containers
+      # -----------------------------------------------------------------------
+      containers:
+        - name: backend
+          # Image to use - we'll build this locally for Minikube
+          # For production, this would be: your-registry/pindrop-backend:v1.0.0
+          image: pindrop-backend:latest
+          
+          # Image pull policy
+          # Never: Use local image (for Minikube with local images)
+          # Always: Always pull from registry (for production)
+          # IfNotPresent: Pull only if not available locally
+          imagePullPolicy: Never
+          
+          # Port the container exposes
+          ports:
+            - name: http
+              containerPort: 3001
+              protocol: TCP
+          
+          # -------------------------------------------------------------------
+          # Environment Variables from ConfigMap
+          # -------------------------------------------------------------------
+          envFrom:
+            # Load all keys from ConfigMap as environment variables
+            - configMapRef:
+                name: pindrop-config
+            # Load all keys from Secret as environment variables
+            - secretRef:
+                name: pindrop-secrets
+          
+          # -------------------------------------------------------------------
+          # Resource Limits
+          # -------------------------------------------------------------------
+          # Define CPU and memory limits to prevent runaway containers
+          resources:
+            # Requests: Guaranteed minimum resources
+            requests:
+              memory: "128Mi"
+              cpu: "100m"  # 100 millicores = 0.1 CPU
+            # Limits: Maximum resources allowed
+            limits:
+              memory: "512Mi"
+              cpu: "500m"  # 500 millicores = 0.5 CPU
+          
+          # -------------------------------------------------------------------
+          # Health Checks (Probes)
+          # -------------------------------------------------------------------
+          # Liveness Probe: Is the container alive?
+          # If this fails, Kubernetes restarts the container
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            # Wait 10 seconds before first check
+            initialDelaySeconds: 10
+            # Check every 30 seconds
+            periodSeconds: 30
+            # Timeout for each check
+            timeoutSeconds: 5
+            # Restart after 3 consecutive failures
+            failureThreshold: 3
+          
+          # Readiness Probe: Is the container ready to receive traffic?
+          # If this fails, the Pod is removed from Service endpoints
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            # Wait 5 seconds before first check
+            initialDelaySeconds: 5
+            # Check every 10 seconds
+            periodSeconds: 10
+            # Timeout for each check
+            timeoutSeconds: 3
+            # Mark as not ready after 3 consecutive failures
+            failureThreshold: 3
+      
+      # -----------------------------------------------------------------------
+      # Pod-level Settings
+      # -----------------------------------------------------------------------
+      # Restart policy (Always for Deployments)
+      restartPolicy: Always
+      
+      # How long to wait for graceful shutdown before force killing
+      terminationGracePeriodSeconds: 30
