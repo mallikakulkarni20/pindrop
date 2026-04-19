@@ -1,5 +1,28 @@
+# =============================================================================
+# DOCKER COMPOSE - DEVELOPMENT
+# =============================================================================
+# This compose file is for LOCAL DEVELOPMENT with hot-reload.
+#
+# Key features:
+# - Volume mounts your local code into the container (changes reflect instantly)
+# - Uses nodemon (via npm run dev) for automatic restarts on file changes
+# - Does NOT include frontend (run frontend separately with npm run dev)
+#
+# For production-like testing, use: docker-compose.prod.yml
+#
+# Usage:
+#   docker compose up        # Start postgres + backend
+#   cd frontend && npm run dev   # Start frontend separately (port 8080)
+#
+# Access:
+#   Backend:  http://localhost:3001
+#   Frontend: http://localhost:8080 (when running separately)
+# =============================================================================
 
 services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL Database
+  # ---------------------------------------------------------------------------
   postgres:
     image: postgres:15-alpine
     container_name: pindrop-postgres

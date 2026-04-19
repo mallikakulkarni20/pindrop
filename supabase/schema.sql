@@ -1,4 +1,19 @@
+-- =============================================================================
 -- Supabase schema for Pindrop
+-- =============================================================================
+-- This schema is used by Docker Compose to initialize a local PostgreSQL
+-- container for testing. The production app uses Supabase (cloud database).
+-- =============================================================================
+
+-- Create custom enum type for trip status
+-- Using DO block to handle "type already exists" error gracefully
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'trip_status_type') THEN
+        CREATE TYPE trip_status_type AS ENUM ('draft', 'planned', 'archived');
+    END IF;
+END$$;
+
 CREATE TABLE IF NOT EXISTS app_user (
     user_id BIGSERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
@@ -11,8 +26,6 @@ CREATE TABLE IF NOT EXISTS app_user (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );
-
---CREATE TYPE trip_status_type AS ENUM ('draft', 'planned', 'archived');
 
 CREATE TABLE IF NOT EXISTS trip (
     trip_id BIGSERIAL PRIMARY KEY,

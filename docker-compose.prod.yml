@@ -1,0 +1,132 @@
+# =============================================================================
+# DOCKER COMPOSE - PRODUCTION-LIKE LOCAL TESTING
+# =============================================================================
+# This compose file tests the PRODUCTION Docker images locally.
+# It mimics how the app will run in Kubernetes (production images, no hot-reload).
+#
+# Use this to verify your production images work before deploying to K8s.
+#
+# DIFFERENCE FROM docker-compose.yml (development):
+# - Development: Uses volume mounts for hot-reload, runs npm run dev
+# - Production: Uses built images, no volume mounts, runs npm start
+#
+# Usage:
+#   docker compose -f docker-compose.prod.yml build
+#   docker compose -f docker-compose.prod.yml up
+#
+# Access:
+#   Frontend: http://localhost:8080
+#   Backend:  http://localhost:3001
+#   API test: http://localhost:3001/health
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL Database
+  # ---------------------------------------------------------------------------
+  # Same as development - we still need a database for testing
+  postgres:
+    image: postgres:15-alpine
+    container_name: pindrop-postgres-prod
+    environment:
+      POSTGRES_DB: myapp_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secure_password_here
+    ports:
+      - "5433:5432"
+    volumes:
+      # Persist data so it survives container restarts
+      - postgres_data_prod:/var/lib/postgresql/data
+      # Initialize database with schema on first run
+      - ./supabase/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    networks:
+      - pindrop-network-prod
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d myapp_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Backend API (Production Image)
+  # ---------------------------------------------------------------------------
+  backend:
+    # Build using the production Dockerfile
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pindrop-backend-prod
+    # Load environment variables from .env file
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      # Database connection (using Docker network DNS name "postgres")
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: secure_password_here
+      DB_NAME: myapp_db
+      DB_SSL: "false"
+    ports:
+      - "3001:3001"
+    # NO volume mounts - we use the built image as-is
+    # This tests that everything is correctly copied into the image
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - pindrop-network-prod
+    # Health check to verify the container is running correctly
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ---------------------------------------------------------------------------
+  # Frontend (Production Image with nginx)
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      # Pass build arguments - these get baked into the JavaScript bundle
+      args:
+        # For local Docker testing, frontend calls backend directly
+        # (not through an Ingress like in Kubernetes)
+        VITE_API_URL: http://localhost:3001
+        # Add your Google Maps API key if needed for testing
+        # VITE_GOOGLE_MAPS_API_KEY: your-key-here
+    container_name: pindrop-frontend-prod
+    ports:
+      # Map container port 80 to host port 8080
+      - "8080:80"
+    # Frontend depends on backend being available
+    # (though it only needs backend at runtime, not startup)
+    depends_on:
+      - backend
+    networks:
+      - pindrop-network-prod
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+# -----------------------------------------------------------------------------
+# Volumes
+# -----------------------------------------------------------------------------
+# Named volume for database persistence
+volumes:
+  postgres_data_prod:
+
+# -----------------------------------------------------------------------------
+# Networks
+# -----------------------------------------------------------------------------
+# Isolated network for production testing
+networks:
+  pindrop-network-prod:
+    driver: bridge
