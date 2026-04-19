@@ -1,292 +1,326 @@
-# Pindrop - Travel Planning App
+# Pindrop - DevOps Final Project
 
-A modern social media platform built with Express.js backend and React frontend, designed as a monorepo to support multiple backend services. Pindrop allows users to create posts, follow other users, like content, and interact through comments.
+A travel planning application transformed into a production-ready, Kubernetes-deployable system using modern DevOps practices.
 
-## 🏗️ Architecture
+## Project Overview
 
-This monorepo contains:
+This project takes an existing full-stack application (Pindrop - a travel planning app) and implements a complete DevOps pipeline including:
 
-- **Backend** (`apps/backend`): Express.js API server with TypeScript
-- **Frontend** (`apps/frontend`): React application with Vite and TypeScript
-- **Shared** (`packages/shared`): Common utilities, types, and constants
-- **Services** (`services/`): Future microservices (ready for expansion)
+- **Docker**: Multi-stage production builds for frontend and backend
+- **Kubernetes**: Container orchestration with Deployments, Services, ConfigMaps, Secrets, and Ingress
+- **Helm**: Package management with environment-specific configurations
+- **Minikube**: Local Kubernetes testing environment
 
-## 🚀 Tech Stack
+### Application Stack
 
-### Backend
-- **Node.js** with **Express.js**
-- **TypeScript** for type safety
-- **MySQL** with custom database service
-- **JWT** for authentication
-- **Winston** for logging
-- **Joi** for validation
+| Component | Technology |
+|-----------|------------|
+| Frontend | React, Vite, TypeScript, Tailwind CSS |
+| Backend | Node.js, Express |
+| Database | PostgreSQL (Supabase) |
+| Container Runtime | Docker |
+| Orchestration | Kubernetes |
+| Package Manager | Helm |
 
-### Frontend
-- **React 18** with **TypeScript**
-- **Vite** for fast development
-- **React Router** for routing
-- **React Query** for data fetching
-- **React Hook Form** for forms
-- **Tailwind CSS** for styling
-- **Lucide React** for icons
+---
 
-### Database
-- **MySQL** 8.0
-- **Custom database service** for data management
+## What Was Accomplished
 
-### Development
-- **Docker** and **Docker Compose** for containerization
-- **ESLint** and **Prettier** for code quality
-- **Concurrently** for running multiple services
+### Week 1: Docker Containerization
 
-## 📁 Project Structure
+- Created multi-stage `Dockerfile` for backend (210MB production image)
+- Created multi-stage `Dockerfile` for frontend with nginx (55MB production image)
+- Configured nginx for SPA routing
+- Created `docker-compose.prod.yml` for local testing
+
+### Week 2: Kubernetes Manifests
+
+- Backend Deployment and Service
+- Frontend Deployment and Service
+- ConfigMap for non-sensitive configuration
+- Secrets template for sensitive data
+- Ingress for path-based routing (/api/* → backend, /* → frontend)
+- Health checks (liveness and readiness probes)
+
+### Week 3: Helm Charts
+
+- Converted all manifests to Helm templates
+- Created `values.yaml` with development defaults
+- Created `values-prod.yaml` with production overrides
+- Implemented helper templates for DRY code
+- Created deployment scripts for one-command deploys
+
+---
+
+## Project Structure
 
 ```
 pindrop/
-├── apps/
-│   ├── backend/                 # Express.js API server
-│   │   ├── src/
-│   │   │   ├── controllers/     # Route controllers
-│   │   │   ├── middleware/      # Express middleware
-│   │   │   ├── routes/          # API routes
-│   │   │   ├── schemas/         # Validation schemas
-│   │   │   ├── utils/           # Utility functions
-│   │   │   └── index.ts         # Application entry point
-│   │   ├── src/
-│   │   │   ├── services/        # Database service
-│   │   └── package.json
-│   └── frontend/                # React application
-│       ├── src/
-│       │   ├── components/      # React components
-│       │   ├── contexts/        # React contexts
-│       │   ├── hooks/           # Custom hooks
-│       │   ├── pages/           # Page components
-│       │   ├── services/        # API services
-│       │   ├── types/           # TypeScript types
-│       │   └── main.tsx         # Application entry point
-│       └── package.json
-├── packages/
-│   └── shared/                  # Shared utilities and types
-│       ├── src/
-│       │   ├── types/           # Common TypeScript types
-│       │   ├── utils/           # Utility functions
-│       │   └── constants/       # Application constants
-│       └── package.json
-├── services/                    # Future microservices
-├── apps/
-│   └── models/                  # Database models and setup
-├── scripts/                     # Development scripts
-├── docker-compose.yml           # Docker services configuration
-└── package.json                 # Root package.json with workspaces
+├── Dockerfile                      # Backend production image
+├── docker-compose.yml              # Development setup
+├── docker-compose.prod.yml         # Production testing
+├── frontend/
+│   ├── Dockerfile                  # Frontend production image (nginx)
+│   └── nginx.conf                  # SPA routing configuration
+├── backend/
+│   └── server.js                   # Express API server
+├── k8s/
+│   ├── manifests/                  # Raw Kubernetes YAML (Week 2)
+│   │   ├── namespace.yaml
+│   │   ├── configmap.yaml
+│   │   ├── secrets.yaml.template
+│   │   ├── backend-deployment.yaml
+│   │   ├── backend-service.yaml
+│   │   ├── frontend-deployment.yaml
+│   │   ├── frontend-service.yaml
+│   │   └── ingress.yaml
+│   └── pindrop-chart/              # Helm chart (Week 3)
+│       ├── Chart.yaml
+│       ├── values.yaml             # Dev configuration
+│       ├── values-prod.yaml        # Prod configuration
+│       └── templates/
+│           ├── _helpers.tpl
+│           ├── configmap.yaml
+│           ├── secrets.yaml
+│           ├── backend-deployment.yaml
+│           ├── backend-service.yaml
+│           ├── frontend-deployment.yaml
+│           ├── frontend-service.yaml
+│           └── ingress.yaml
+├── scripts/
+│   ├── minikube-setup.sh           # Initialize Minikube
+│   ├── build-images.sh             # Build Docker images
+│   ├── create-secrets.sh           # Create K8s secrets
+│   ├── deploy.sh                   # Deploy with kubectl
+│   ├── helm-deploy.sh              # Deploy with Helm
+│   ├── helm-template.sh            # Preview Helm output
+│   └── helm-diff.sh                # Compare dev vs prod
+├── DOCKER_TESTING.md               # Docker testing guide
+├── KUBERNETES_TESTING.md           # Kubernetes testing guide
+├── HELM_TESTING.md                 # Helm testing guide
+└── DEMO_SCRIPT.md                  # Presentation demo script
 ```
 
-## 🛠️ Getting Started
+---
+
+## Technologies & Philosophies Applied
+
+### Technologies (from course)
+
+| Technology | How It's Used |
+|------------|---------------|
+| **Docker** | Multi-stage builds, production images, docker-compose |
+| **Kubernetes** | Deployments, Services, ConfigMaps, Secrets, Ingress |
+| **Helm** | Templating, values files, releases, rollbacks |
+| **Minikube** | Local Kubernetes cluster for testing |
+
+### DevOps Philosophies (from course)
+
+| Philosophy | How It's Applied |
+|------------|------------------|
+| **Reproducibility** | Same Helm chart produces identical deployments |
+| **Portability** | Containerized app runs on any Kubernetes cluster |
+| **Declarative Configuration** | Desired state defined in YAML, K8s maintains it |
+| **Environment Parity** | Dev/prod use same templates, different values |
+| **Separation of Concerns** | Config (values.yaml) separate from templates |
+| **Infrastructure as Code** | All configuration version-controlled in Git |
+
+---
+
+## How to Test/View What Was Built
 
 ### Prerequisites
 
-- **Node.js** 18+
-- **npm** 9+
-- **Docker** and **Docker Compose**
-- **MySQL** (if running locally)
+```bash
+# Install required tools (macOS)
+brew install minikube kubectl helm
 
-### Installation
+# Verify installations
+minikube version
+kubectl version --client
+helm version
+```
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd pindrop
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Set up environment variables**
-   ```bash
-   # Backend
-   cp apps/backend/env.example apps/backend/.env
-
-   # Frontend
-   cp apps/frontend/.env.example apps/frontend/.env
-   ```
-
-4. **Start with Docker (Recommended)**
-   ```bash
-   npm run docker:up
-   ```
-
-   Or start individual services:
-   ```bash
-   # Start database
-   docker-compose up mysql -d
-
-   # Setup database tables
-   npm run db:setup
-
-   # Start backend
-   npm run dev:backend
-
-   # Start frontend (in another terminal)
-   npm run dev:frontend
-   ```
-
-### Development Commands
+### Quick Start
 
 ```bash
-# Install dependencies for all workspaces
-npm install
+# 1. Clone and navigate to project
+cd pindrop
 
-# Start all services in development mode
-npm run dev
+# 2. Start Minikube
+./scripts/minikube-setup.sh
 
-# Start individual services
-npm run dev:backend
-npm run dev:frontend
+# 3. Add to /etc/hosts (use the Minikube IP shown)
+echo "$(minikube ip) pindrop.local" | sudo tee -a /etc/hosts
 
-# Build all applications
-npm run build
+# 4. Build Docker images
+./scripts/build-images.sh
 
-# Run tests
-npm run test
+# 5. Create secrets from .env
+./scripts/create-secrets.sh
 
-# Lint code
-npm run lint
+# 6. Deploy with Helm
+./scripts/helm-deploy.sh
 
-# Database operations
-npm run db:setup
-npm run db:seed
-
-# Docker operations
-npm run docker:up
-npm run docker:down
-npm run docker:build
+# 7. Access the application
+kubectl port-forward svc/pindrop-frontend 8080:80 -n pindrop &
+open http://localhost:8080
 ```
 
-## 🗄️ Database
-
-The application uses MySQL with a custom database service. Database operations are handled through the custom service:
+### Testing Different Scenarios
 
 ```bash
-# Setup database tables
-npm run db:setup
+# Preview what Helm will generate (without deploying)
+./scripts/helm-template.sh
 
-# Seed the database
-npm run db:seed
+# Compare dev vs prod configuration
+./scripts/helm-diff.sh
+
+# Deploy with production values (more replicas)
+./scripts/helm-deploy.sh prod
+
+# Scale without editing files
+helm upgrade pindrop ./k8s/pindrop-chart -n pindrop --set backend.replicas=5
+
+# View deployment history
+helm history pindrop -n pindrop
+
+# Rollback to previous version
+helm rollback pindrop 1 -n pindrop
+
+# Clean up
+helm uninstall pindrop -n pindrop
 ```
 
-## 🔐 Authentication
+---
 
-The application uses JWT-based authentication:
+## Key DevOps Concepts Demonstrated
 
-- **Access tokens** expire in 15 minutes
-- **Refresh tokens** expire in 7 days
-- Tokens are stored in HTTP-only cookies (recommended for production)
-- Automatic token refresh on API calls
+### 1. Multi-Stage Docker Builds
 
-## 🌐 API Endpoints
+```dockerfile
+# Stage 1: Build with all dependencies
+FROM node:20-alpine AS builder
+RUN npm ci
+COPY . .
 
-### Authentication
-- `POST /api/auth/register` - Register new user (username, first_name, last_name, email, password)
-- `POST /api/auth/login` - Login user (email, password)
-- `POST /api/auth/logout` - Logout user
-- `POST /api/auth/refresh` - Refresh access token
+# Stage 2: Production with only runtime dependencies
+FROM node:20-alpine AS production
+RUN npm ci --omit=dev
+CMD ["npm", "start"]
+```
 
-### Users
-- `GET /api/users/profile` - Get user profile
-- `PUT /api/users/profile` - Update user profile (username, first_name, last_name, email, bio, profile_picture)
-- `DELETE /api/users/profile` - Delete user account
+**Result:** Smaller, more secure images (210MB vs 500MB+)
 
-### Posts (Future)
-- `GET /api/posts` - Get posts feed
-- `POST /api/posts` - Create new post
-- `GET /api/posts/:id` - Get specific post
-- `PUT /api/posts/:id` - Update post
-- `DELETE /api/posts/:id` - Delete post
-- `POST /api/posts/:id/like` - Like/unlike post
+### 2. Kubernetes Resource Management
 
-### Social Features (Future)
-- `GET /api/users/:id/followers` - Get user followers
-- `GET /api/users/:id/following` - Get user following
-- `POST /api/users/:id/follow` - Follow user
-- `DELETE /api/users/:id/follow` - Unfollow user
+```yaml
+# Deployment ensures desired number of pods are running
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+        - name: backend
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+```
 
-### Health Check
-- `GET /health` - Application health status
+### 3. Helm Templating
 
-## 🚀 Deployment
+```yaml
+# Template (with variables)
+replicas: {{ .Values.backend.replicas }}
 
-### Production Build
+# values.yaml (dev)
+backend:
+  replicas: 1
+
+# values-prod.yaml
+backend:
+  replicas: 3
+```
+
+**Result:** Same chart, different environments
+
+### 4. Path-Based Ingress Routing
+
+```yaml
+rules:
+  - http:
+      paths:
+        - path: /api
+          backend:
+            service:
+              name: pindrop-backend
+        - path: /
+          backend:
+            service:
+              name: pindrop-frontend
+```
+
+**Result:** Single entry point, intelligent routing
+
+---
+
+## Inline Documentation
+
+All configuration files include extensive comments explaining:
+- What each section does
+- Why it's configured that way
+- How to modify it
+
+See especially:
+- `Dockerfile` - Explains multi-stage build process
+- `k8s/pindrop-chart/templates/_helpers.tpl` - Explains Helm templating
+- `k8s/pindrop-chart/values.yaml` - Explains all configuration options
+
+---
+
+## Challenges & Solutions
+
+### Challenge 1: Frontend API URL Configuration
+**Problem:** Frontend needs different API URLs for different environments.  
+**Solution:** Use Docker build arguments (`VITE_API_URL`) to bake the correct URL at build time.
+
+### Challenge 2: macOS Minikube Networking
+**Problem:** Minikube IP not accessible on macOS with Docker driver.  
+**Solution:** Use `kubectl port-forward` for local testing; Ingress works correctly in cloud environments.
+
+### Challenge 3: Secrets Management
+**Problem:** Keep credentials secure while enabling deployment.  
+**Solution:** Template file in git, actual secrets created via script from `.env` file.
+
+---
+
+## Useful Commands Reference
 
 ```bash
-# Build all applications
-npm run build
+# Minikube
+minikube start/stop/status
+minikube dashboard              # Visual UI
 
-# Start production server
-npm run start
+# Kubernetes
+kubectl get pods -n pindrop
+kubectl logs -l app.kubernetes.io/component=backend -n pindrop
+kubectl describe pod <pod-name> -n pindrop
+kubectl port-forward svc/pindrop-frontend 8080:80 -n pindrop
+
+# Helm
+helm install pindrop ./k8s/pindrop-chart -n pindrop
+helm upgrade pindrop ./k8s/pindrop-chart -n pindrop
+helm list -n pindrop
+helm history pindrop -n pindrop
+helm rollback pindrop 1 -n pindrop
+helm uninstall pindrop -n pindrop
 ```
 
-### Docker Production
+---
 
-```bash
-# Build production images
-docker-compose -f docker-compose.prod.yml build
+## Author
 
-# Start production services
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-## 🔧 Adding New Services
-
-To add a new backend service:
-
-1. Create a new directory in `services/`
-2. Add a `package.json` with the service name `@pindrop/service-name`
-3. Update the root `package.json` workspaces array
-4. Add the service to `docker-compose.yml`
-
-Example:
-```bash
-mkdir services/notification-service
-cd services/notification-service
-npm init -y
-# Configure the service...
-```
-
-## 📝 Environment Variables
-
-### Backend (.env)
-```env
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=pindrop_user
-DB_PASSWORD=pindrop_password
-DB_NAME=pindrop_db
-JWT_SECRET="your-super-secret-jwt-key-here"
-JWT_REFRESH_SECRET="your-super-secret-refresh-key-here"
-PORT=3001
-NODE_ENV=development
-FRONTEND_URL="http://localhost:3000"
-LOG_LEVEL=info
-```
-
-### Frontend (.env)
-```env
-VITE_API_URL="http://localhost:3001"
-```
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests and linting
-5. Submit a pull request
-
-## 📄 License
-
-This project is licensed under the MIT License.
-
-## 🆘 Support
-
-For support and questions, please open an issue in the repository.
+Mallika Kulkarni  
+CIS 1912 - DevOps  
+Spring 2026
