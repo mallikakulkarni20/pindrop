@@ -1,28 +1,6 @@
-# =============================================================================
-# DOCKER COMPOSE - DEVELOPMENT
-# =============================================================================
-# This compose file is for LOCAL DEVELOPMENT with hot-reload.
-#
-# Key features:
-# - Volume mounts your local code into the container (changes reflect instantly)
-# - Uses nodemon (via npm run dev) for automatic restarts on file changes
-# - Does NOT include frontend (run frontend separately with npm run dev)
-#
-# For production-like testing, use: docker-compose.prod.yml
-#
-# Usage:
-#   docker compose up        # Start postgres + backend
-#   cd frontend && npm run dev   # Start frontend separately (port 8080)
-#
-# Access:
-#   Backend:  http://localhost:3001
-#   Frontend: http://localhost:8080 (when running separately)
-# =============================================================================
+# Local dev setup (hot reload)
 
 services:
-  # ---------------------------------------------------------------------------
-  # PostgreSQL Database
-  # ---------------------------------------------------------------------------
   postgres:
     image: postgres:15-alpine
     container_name: pindrop-postgres
@@ -43,7 +21,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # Backend API
   backend:
     build:
       context: .
@@ -62,8 +39,7 @@ services:
       PORT: 3001
       JWT_SECRET: your-super-secret-jwt-key-here
       JWT_REFRESH_SECRET: your-super-secret-refresh-key-here
-      # OpenAI configuration for LLM chat
-      # API key should be set in .env file (gitignored) for security
+      # OpenAI key comes from .env
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-3.5-turbo}
     ports:

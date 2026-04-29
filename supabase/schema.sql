@@ -1,12 +1,6 @@
--- =============================================================================
--- Supabase schema for Pindrop
--- =============================================================================
--- This schema is used by Docker Compose to initialize a local PostgreSQL
--- container for testing. The production app uses Supabase (cloud database).
--- =============================================================================
+-- Pindrop DB schema (used for local Docker init)
 
--- Create custom enum type for trip status
--- Using DO block to handle "type already exists" error gracefully
+-- Create trip status enum if needed
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'trip_status_type') THEN
@@ -80,7 +74,7 @@ CREATE TABLE IF NOT EXISTS itinerary_activity (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );
 
--- Per-trip meal entries for calendar and budget
+-- Per-trip meal entries
 CREATE TABLE IF NOT EXISTS trip_meal (
     trip_meal_id BIGSERIAL PRIMARY KEY,
     trip_id BIGINT NOT NULL REFERENCES trip(trip_id) ON DELETE CASCADE,
@@ -97,7 +91,7 @@ CREATE TABLE IF NOT EXISTS trip_meal (
     UNIQUE (trip_id, day_number, slot)
 );
 
--- Per-trip manual expenses (souvenirs, transport, etc.)
+-- Per-trip manual expenses
 CREATE TABLE IF NOT EXISTS trip_expense (
     trip_expense_id BIGSERIAL PRIMARY KEY,
     trip_id BIGINT NOT NULL REFERENCES trip(trip_id) ON DELETE CASCADE,
@@ -114,43 +108,43 @@ CREATE TABLE IF NOT EXISTS trip_expense (
     UNIQUE (trip_id, client_id)
 );
 
--- Trip-specific preferences to guide planning and itinerary generation
+-- Trip-specific planning preferences
 CREATE TABLE IF NOT EXISTS trip_preference (
     trip_preference_id BIGSERIAL PRIMARY KEY,
     trip_id BIGINT NOT NULL UNIQUE REFERENCES trip(trip_id) ON DELETE CASCADE,
-    -- Core structure
+    -- Core trip info
     num_days INT,
     start_date DATE,
     end_date DATE,
-    -- Budget expectations per trip or per day
+    -- Budget range
     min_budget DECIMAL(10, 2),
     max_budget DECIMAL(10, 2),
-    -- How full each day should feel: 'slow', 'balanced', 'packed'
+    -- Daily pace
     pace VARCHAR(50),
-    -- Where they prefer to stay: 'hotel', 'airbnb', 'hostel', etc.
+    -- Preferred stay type
     accommodation_type VARCHAR(50),
-    -- Multi-select activity interests for this trip
+    -- Activity interests
     activity_categories TEXT[] DEFAULT '{}',
-    -- Things to avoid on this trip
+    -- Activities to avoid
     avoid_activity_categories TEXT[] DEFAULT '{}',
-    -- Optional: if the destination is a country/region, the user can pick one or more cities to focus planning on
+    -- Optional city focus list
     selected_cities TEXT[] DEFAULT '{}',
-    -- Ordered city list for multi-city planning
+    -- Ordered cities for multi-city trips
     ordered_cities TEXT[] DEFAULT '{}',
-    -- Multi-city day allocations (JSON: { [cityName]: number })
+    -- Day allocation per city (JSON)
     city_days JSONB,
-    -- Whether the multi-city step was completed
+    -- Multi-city step completion flag
     has_confirmed_multi_city BOOLEAN DEFAULT FALSE,
-    -- Who is travelling: 'solo', 'couple', 'family', 'friends', 'girls_trip', etc.
+    -- Travel group type
     group_type VARCHAR(50),
-    -- Safety and access notes (ex. \"safe for a group of girls\")
+    -- Safety/access notes
     safety_notes TEXT,
     accessibility_notes TEXT,
-    -- Free-form extra requests or constraints
+    -- Extra notes/constraints
     custom_requests TEXT,
-    -- Restaurant/dining preferences (JSON: cuisine_types, dietary_restrictions, meals_per_day, meal_types, min_price_range, max_price_range, custom_requests)
+    -- Restaurant preference JSON
     restaurant_preferences JSONB,
-    -- Phase completion flags so the planner can resume where the user left off
+    -- Progress flags for planner flow
     has_confirmed_hotels BOOLEAN DEFAULT FALSE,
     has_confirmed_activities BOOLEAN DEFAULT FALSE,
     has_confirmed_restaurants BOOLEAN DEFAULT FALSE,
@@ -158,7 +152,7 @@ CREATE TABLE IF NOT EXISTS trip_preference (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );
 
--- Reusable restaurant catalog (similar to activity)
+-- Reusable restaurant catalog
 CREATE TABLE IF NOT EXISTS restaurant (
     restaurant_id BIGSERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
@@ -183,7 +177,7 @@ CREATE TABLE IF NOT EXISTS restaurant (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );
 
--- Trip-level feedback on restaurants (swipe-style selection, like trip_activity_preference)
+-- Trip-level restaurant preference
 CREATE TABLE IF NOT EXISTS trip_restaurant_preference (
     trip_restaurant_preference_id BIGSERIAL PRIMARY KEY,
     trip_id BIGINT NOT NULL REFERENCES trip(trip_id) ON DELETE CASCADE,
@@ -196,7 +190,7 @@ CREATE INDEX IF NOT EXISTS idx_trip_restaurant_preference_trip_id ON trip_restau
 CREATE INDEX IF NOT EXISTS idx_restaurant_location ON restaurant(location);
 CREATE INDEX IF NOT EXISTS idx_restaurant_city ON restaurant(city);
 
--- Trip-level feedback on reusable activities (for swipe-style selection)
+-- Trip-level activity preference
 CREATE TABLE IF NOT EXISTS trip_activity_preference (
     trip_activity_preference_id BIGSERIAL PRIMARY KEY,
     trip_id BIGINT NOT NULL REFERENCES trip(trip_id) ON DELETE CASCADE,
@@ -214,58 +208,52 @@ CREATE TABLE IF NOT EXISTS chat_message (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );
 
--- Individual flight options (similar to activity table)
--- Each row represents one flight option (either outbound or return)
+-- Flight options
 CREATE TABLE IF NOT EXISTS flight (
     flight_id BIGSERIAL PRIMARY KEY,
     flight_type VARCHAR(20) NOT NULL CHECK (flight_type IN ('outbound', 'return', 'intercity')),
-    -- Extracted from flight_data JSONB
+    -- Parsed from flight_data JSONB
     price DECIMAL(10, 2),
-    departure_token VARCHAR(255), -- Used to fetch return flights for this outbound flight
-    total_duration INT, -- Duration in minutes
-    -- Complex nested structures stored as JSONB
-    flights JSONB, -- Array of flight legs
-    layovers JSONB, -- Array of layover information
-    -- Additional flight data that doesn't fit in columns
-    additional_data JSONB, -- For any other flight data fields
-    -- Extracted from search_params JSONB
-    departure_id VARCHAR(100), -- Airport code for departure
-    arrival_id VARCHAR(100), -- Airport code for arrival
+    departure_token VARCHAR(255), -- Used to fetch return flights
+    total_duration INT, -- Minutes
+    -- Nested JSON fields
+    flights JSONB, -- Flight legs
+    layovers JSONB, -- Layover info
+    -- Extra flight payload
+    additional_data JSONB, -- Misc fields
+    -- Parsed from search_params JSONB
+    departure_id VARCHAR(100), -- Departure airport code
+    arrival_id VARCHAR(100), -- Arrival airport code
     outbound_date DATE,
     return_date DATE,
     currency VARCHAR(10) DEFAULT 'USD',
-    -- Additional search parameters that don't fit in columns
-    additional_search_params JSONB, -- For any other search parameters
+    -- Extra search params
+    additional_search_params JSONB, -- Misc params
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );
 
--- Maps flights to trips (similar to itinerary_activity or trip_activity_preference)
--- Tracks which flights are associated with which trips and their selection status
+-- Map flights to trips
 CREATE TABLE IF NOT EXISTS trip_flight (
     trip_id BIGINT NOT NULL REFERENCES trip(trip_id) ON DELETE CASCADE,
     flight_id BIGINT NOT NULL REFERENCES flight(flight_id) ON DELETE CASCADE,
-    -- Whether this flight is selected for the trip (only one outbound and one return should be selected per trip)
+    -- Selected flight flag
     is_selected BOOLEAN DEFAULT FALSE,
     finalized BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
-    -- Composite primary key
+    -- Composite PK
     PRIMARY KEY (trip_id, flight_id)
 );
 
--- Maps departing flights to their available return flights
--- When a departing flight is selected, return flights are fetched via API using departure_token
--- This table stores which return flights are available for which departing flight within a specific trip
--- Note: Application logic should ensure departing_flight_id references an 'outbound' flight
--- and return_flight_id references a 'return' flight
+-- Valid return options for each outbound flight
 CREATE TABLE IF NOT EXISTS flight_return_mapping (
     trip_id BIGINT NOT NULL REFERENCES trip(trip_id) ON DELETE CASCADE,
     departing_flight_id BIGINT NOT NULL REFERENCES flight(flight_id) ON DELETE CASCADE,
     return_flight_id BIGINT NOT NULL REFERENCES flight(flight_id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
-    -- Composite primary key ensures uniqueness per trip
+    -- Composite PK ensures uniqueness per trip
     PRIMARY KEY (trip_id, departing_flight_id, return_flight_id),
-    -- Prevent a flight from being mapped to itself
+    -- Prevent self-mapping
     CONSTRAINT check_different_flights CHECK (departing_flight_id != return_flight_id)
 );
 
@@ -282,109 +270,104 @@ CREATE INDEX IF NOT EXISTS idx_flight_type ON flight(flight_type);
 CREATE INDEX IF NOT EXISTS idx_flight_departure_token ON flight(departure_token) WHERE departure_token IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_trip_flight_trip_id ON trip_flight(trip_id);
 CREATE INDEX IF NOT EXISTS idx_trip_flight_flight_id ON trip_flight(flight_id);
--- Note: Application logic should ensure only one selected outbound and one selected return flight per trip
--- This can be enforced via a trigger or application-level checks
+-- App logic should enforce only one selected outbound + return
 CREATE INDEX IF NOT EXISTS idx_trip_flight_selected ON trip_flight(trip_id, is_selected) WHERE is_selected = TRUE;
 CREATE INDEX IF NOT EXISTS idx_flight_return_mapping_trip_id ON flight_return_mapping(trip_id);
 CREATE INDEX IF NOT EXISTS idx_flight_return_mapping_departing ON flight_return_mapping(departing_flight_id);
 CREATE INDEX IF NOT EXISTS idx_flight_return_mapping_return ON flight_return_mapping(return_flight_id);
 CREATE INDEX IF NOT EXISTS idx_flight_return_mapping_trip_departing ON flight_return_mapping(trip_id, departing_flight_id);
 
--- Individual hotel options (similar to flight table)
--- Each row represents one hotel option from the search results
+-- Hotel options
 CREATE TABLE IF NOT EXISTS hotel (
     hotel_id BIGSERIAL PRIMARY KEY,
-    -- Basic hotel information
+    -- Basic hotel info
     name VARCHAR(255) NOT NULL,
-    type VARCHAR(100), -- e.g., 'hotel', 'vacation rental'
+    type VARCHAR(100), -- Example: hotel, vacation rental
     description TEXT,
-    link TEXT, -- URL of the property's website
-    logo TEXT, -- URL of the property's logo
+    link TEXT, -- Property website
+    logo TEXT, -- Logo URL
     sponsored BOOLEAN DEFAULT FALSE,
     eco_certified BOOLEAN DEFAULT FALSE,
-    -- Location information
-    location VARCHAR(255), -- Search location used
-    latitude DECIMAL(10, 8), -- From gps_coordinates
-    longitude DECIMAL(11, 8), -- From gps_coordinates
+    -- Location info
+    location VARCHAR(255), -- Search location
+    latitude DECIMAL(10, 8), -- From GPS coords
+    longitude DECIMAL(11, 8), -- From GPS coords
     -- Check-in/out times
-    check_in_time VARCHAR(50), -- e.g., '3:00 PM'
-    check_out_time VARCHAR(50), -- e.g., '12:00 PM'
-    -- Pricing information (extracted from rate_per_night and total_rate)
-    rate_per_night_lowest DECIMAL(10, 2), -- extracted_lowest from rate_per_night
-    rate_per_night_formatted VARCHAR(50), -- lowest formatted string
-    total_rate_lowest DECIMAL(10, 2), -- extracted_lowest from total_rate
-    total_rate_formatted VARCHAR(50), -- lowest formatted string
-    -- Hotel classification
-    hotel_class VARCHAR(50), -- e.g., '5-star hotel'
-    extracted_hotel_class INT, -- e.g., 5
-    -- Ratings and reviews
-    overall_rating DECIMAL(3, 2), -- e.g., 4.5
-    reviews INT, -- Total number of reviews
-    location_rating DECIMAL(3, 2), -- Location rating
-    -- Complex nested structures stored as JSONB
-    prices JSONB, -- Array of prices from different sources
-    nearby_places JSONB, -- Array of nearby places with transportations
-    images JSONB, -- Array of image objects (thumbnail, original_image)
-    ratings JSONB, -- Array of star ratings breakdown
-    reviews_breakdown JSONB, -- Array of review breakdown categories
-    amenities TEXT[], -- Array of amenities (e.g., 'Free Wi-Fi', 'Free parking')
-    excluded_amenities TEXT[], -- Array of excluded amenities
-    health_and_safety JSONB, -- Health and safety information object
-    essential_info TEXT[], -- Essential info for vacation rentals
-    -- SerpAPI specific fields
-    property_token VARCHAR(255), -- Token to retrieve property details
-    serpapi_property_details_link TEXT, -- SerpAPI endpoint for property details
-    -- Search parameters used to find this hotel
+    check_in_time VARCHAR(50), -- Example: 3:00 PM
+    check_out_time VARCHAR(50), -- Example: 12:00 PM
+    -- Pricing fields
+    rate_per_night_lowest DECIMAL(10, 2), -- Lowest nightly rate
+    rate_per_night_formatted VARCHAR(50), -- Formatted value
+    total_rate_lowest DECIMAL(10, 2), -- Lowest total rate
+    total_rate_formatted VARCHAR(50), -- Formatted value
+    -- Hotel class
+    hotel_class VARCHAR(50), -- Example: 5-star hotel
+    extracted_hotel_class INT, -- Example: 5
+    -- Ratings
+    overall_rating DECIMAL(3, 2), -- Example: 4.5
+    reviews INT, -- Review count
+    location_rating DECIMAL(3, 2), -- Location score
+    -- Nested JSON fields
+    prices JSONB, -- Price entries
+    nearby_places JSONB, -- Nearby places/transit
+    images JSONB, -- Image objects
+    ratings JSONB, -- Star rating breakdown
+    reviews_breakdown JSONB, -- Review category breakdown
+    amenities TEXT[], -- Amenities
+    excluded_amenities TEXT[], -- Excluded amenities
+    health_and_safety JSONB, -- Health/safety JSON
+    essential_info TEXT[], -- Essential rental info
+    -- SerpAPI fields
+    property_token VARCHAR(255), -- Property details token
+    serpapi_property_details_link TEXT, -- SerpAPI details endpoint
+    -- Search params
     search_location VARCHAR(255), -- Location searched
-    check_in_date DATE, -- Check-in date used in search
-    check_out_date DATE, -- Check-out date used in search
+    check_in_date DATE, -- Search check-in date
+    check_out_date DATE, -- Search check-out date
     currency VARCHAR(10) DEFAULT 'USD',
-    -- Additional hotel data that doesn't fit in columns
-    additional_data JSONB, -- For any other hotel data fields
+    -- Extra hotel payload
+    additional_data JSONB, -- Misc hotel fields
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );
 
--- Maps hotels to trips (similar to trip_flight)
--- Tracks which hotels are associated with which trips and their selection status
+-- Map hotels to trips
 CREATE TABLE IF NOT EXISTS trip_hotel (
     trip_id BIGINT NOT NULL REFERENCES trip(trip_id) ON DELETE CASCADE,
     hotel_id BIGINT NOT NULL REFERENCES hotel(hotel_id) ON DELETE CASCADE,
-    -- Whether this hotel is selected for the trip (only one hotel should be selected per trip)
+    -- Selected hotel flag
     is_selected BOOLEAN DEFAULT FALSE,
     finalized BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
-    -- Composite primary key
+    -- Composite PK
     PRIMARY KEY (trip_id, hotel_id)
 );
 
--- Indexes for hotel tables
+-- Hotel indexes
 CREATE INDEX IF NOT EXISTS idx_hotel_location ON hotel(location);
 CREATE INDEX IF NOT EXISTS idx_hotel_name ON hotel(name);
 CREATE INDEX IF NOT EXISTS idx_hotel_property_token ON hotel(property_token) WHERE property_token IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_hotel_search_dates ON hotel(check_in_date, check_out_date);
 CREATE INDEX IF NOT EXISTS idx_trip_hotel_trip_id ON trip_hotel(trip_id);
 CREATE INDEX IF NOT EXISTS idx_trip_hotel_hotel_id ON trip_hotel(hotel_id);
--- Note: Application logic should ensure only one selected hotel per trip
--- This can be enforced via a trigger or application-level checks
+-- App logic should enforce one selected hotel per trip
 CREATE INDEX IF NOT EXISTS idx_trip_hotel_selected ON trip_hotel(trip_id, is_selected) WHERE is_selected = TRUE;
 
--- Cache hotel booking options to avoid repeated API calls
--- Stores the booking options (featured_prices) fetched from SerpAPI property details
+-- Cache hotel booking options from SerpAPI
 CREATE TABLE IF NOT EXISTS hotel_booking_options (
     hotel_booking_options_id BIGSERIAL PRIMARY KEY,
     hotel_id BIGINT NOT NULL REFERENCES hotel(hotel_id) ON DELETE CASCADE,
-    -- The serpapi_property_details_link used to fetch this data (for identification)
+    -- SerpAPI link used to fetch
     serpapi_link TEXT NOT NULL,
-    -- The full property details response from SerpAPI (or just the booking options part)
+    -- Booking options payload
     booking_options_data JSONB NOT NULL,
-    -- When this data was fetched
+    -- Fetch timestamp
     fetched_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
-    -- Ensure we don't store duplicate entries for the same hotel and link
+    -- Avoid duplicates per hotel+link
     UNIQUE(hotel_id, serpapi_link)
 );
 
--- Indexes for hotel_booking_options
+-- Booking option indexes
 CREATE INDEX IF NOT EXISTS idx_hotel_booking_options_hotel_id ON hotel_booking_options(hotel_id);
 CREATE INDEX IF NOT EXISTS idx_hotel_booking_options_serpapi_link ON hotel_booking_options(serpapi_link);
 CREATE INDEX IF NOT EXISTS idx_hotel_booking_options_fetched_at ON hotel_booking_options(fetched_at);
