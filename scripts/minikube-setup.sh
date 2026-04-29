@@ -1,34 +1,13 @@
 #!/bin/bash
-# =============================================================================
-# MINIKUBE SETUP SCRIPT
-# =============================================================================
-# This script initializes Minikube with the necessary configuration for
-# running the Pindrop application.
-#
-# What it does:
-# 1. Starts Minikube with adequate resources
-# 2. Enables the Ingress addon (nginx-ingress-controller)
-# 3. Displays the Minikube IP for /etc/hosts configuration
-#
-# Prerequisites:
-# - Minikube installed: https://minikube.sigs.k8s.io/docs/start/
-# - kubectl installed: https://kubernetes.io/docs/tasks/tools/
-# - Docker Desktop running (if using docker driver)
-#
-# Usage:
-#   chmod +x scripts/minikube-setup.sh
-#   ./scripts/minikube-setup.sh
-# =============================================================================
+# Setup Minikube for this project
 
-set -e  # Exit on any error
+set -e  # Stop on first error
 
 echo "=============================================="
 echo "  Pindrop - Minikube Setup"
 echo "=============================================="
 
-# -----------------------------------------------------------------------------
-# Check Prerequisites
-# -----------------------------------------------------------------------------
+# Check required tools
 echo ""
 echo "[1/5] Checking prerequisites..."
 
@@ -47,20 +26,15 @@ fi
 echo "✓ minikube found: $(minikube version --short)"
 echo "✓ kubectl found: $(kubectl version --client --short 2>/dev/null || kubectl version --client)"
 
-# -----------------------------------------------------------------------------
 # Start Minikube
-# -----------------------------------------------------------------------------
 echo ""
 echo "[2/5] Starting Minikube..."
 
-# Check if Minikube is already running
+# Skip start if already running
 if minikube status | grep -q "Running"; then
     echo "✓ Minikube is already running"
 else
-    # Start Minikube with adequate resources
-    # - 4 CPUs: Enough for running multiple pods
-    # - 4GB RAM: Sufficient for Node.js apps and nginx
-    # - docker driver: Uses Docker containers (faster than VMs)
+    # Start with enough resources for both services
     minikube start \
         --cpus=4 \
         --memory=4096 \
@@ -68,16 +42,13 @@ else
     echo "✓ Minikube started"
 fi
 
-# -----------------------------------------------------------------------------
-# Enable Ingress Addon
-# -----------------------------------------------------------------------------
+# Enable ingress addon
 echo ""
 echo "[3/5] Enabling Ingress addon..."
 
-# Enable the nginx ingress controller
 minikube addons enable ingress
 
-# Wait for ingress controller to be ready
+# Wait for ingress controller
 echo "Waiting for ingress controller to be ready..."
 kubectl wait --namespace ingress-nginx \
     --for=condition=ready pod \
@@ -86,18 +57,14 @@ kubectl wait --namespace ingress-nginx \
 
 echo "✓ Ingress addon enabled"
 
-# -----------------------------------------------------------------------------
-# Display Minikube IP
-# -----------------------------------------------------------------------------
+# Print Minikube IP
 echo ""
 echo "[4/5] Getting Minikube IP..."
 
 MINIKUBE_IP=$(minikube ip)
 echo "✓ Minikube IP: $MINIKUBE_IP"
 
-# -----------------------------------------------------------------------------
-# Instructions for /etc/hosts
-# -----------------------------------------------------------------------------
+# Final instructions
 echo ""
 echo "[5/5] Setup Complete!"
 echo ""

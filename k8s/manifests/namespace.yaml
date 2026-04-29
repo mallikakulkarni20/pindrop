@@ -1,24 +1,10 @@
-# =============================================================================
-# KUBERNETES NAMESPACE
-# =============================================================================
-# A Namespace provides a scope for Kubernetes resources, like a virtual cluster.
-#
-# Why use a namespace?
-# - Isolation: Keep pindrop resources separate from other apps
-# - Organization: Easy to see all pindrop resources with `kubectl get all -n pindrop`
-# - Resource quotas: Can limit CPU/memory for the entire namespace
-# - Access control: Can set permissions per namespace
-#
-# Usage:
-#   kubectl apply -f namespace.yaml
-#   kubectl get namespaces
-# =============================================================================
+# Namespace for all project resources
 
 apiVersion: v1
 kind: Namespace
 metadata:
   name: pindrop
   labels:
-    # Labels are key-value pairs for organizing and selecting resources
+    # Common labels for filtering/grouping
     app: pindrop
     environment: development

@@ -1,16 +1,4 @@
-# =============================================================================
-# KUBERNETES SERVICE - FRONTEND
-# =============================================================================
-# Provides a stable network endpoint for the frontend Pods.
-# The Ingress routes external traffic (non-/api paths) to this Service.
-#
-# Traffic flow:
-#   Browser → Ingress → frontend Service → frontend Pods (nginx)
-#
-# Usage:
-#   kubectl apply -f frontend-service.yaml -n pindrop
-#   kubectl get services -n pindrop
-# =============================================================================
+# Internal frontend service
 
 apiVersion: v1
 kind: Service
@@ -21,18 +9,13 @@ metadata:
     app: pindrop
     component: frontend
 spec:
-  # ClusterIP: Only accessible within cluster (Ingress routes to it)
+  # Ingress routes non-/api traffic here
   type: ClusterIP
-  
-  # Select Pods with these labels
   selector:
     app: pindrop
     component: frontend
-  
   ports:
     - name: http
-      # Service port
       port: 80
-      # Pod port (nginx)
       targetPort: 80
       protocol: TCP

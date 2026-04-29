@@ -1,40 +1,18 @@
 #!/bin/bash
-# =============================================================================
-# CREATE KUBERNETES SECRETS FROM .env FILE
-# =============================================================================
-# This script reads your .env file and creates Kubernetes secrets.
-#
-# Why use this script?
-# - Easier than manually base64 encoding each value
-# - kubectl handles encoding automatically with --from-literal
-# - Ensures secrets match your local .env configuration
-#
-# Prerequisites:
-# - kubectl configured to talk to your cluster
-# - .env file exists in project root
-# - Namespace 'pindrop' exists
-#
-# Usage:
-#   chmod +x scripts/create-secrets.sh
-#   ./scripts/create-secrets.sh
-# =============================================================================
+# Create Kubernetes secret values from local .env
 
-set -e  # Exit on any error
+set -e  # Stop on first error
 
 echo "=============================================="
 echo "  Pindrop - Create Kubernetes Secrets"
 echo "=============================================="
 
-# -----------------------------------------------------------------------------
-# Get Project Root Directory
-# -----------------------------------------------------------------------------
+# Resolve project paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 ENV_FILE="$PROJECT_ROOT/.env"
 
-# -----------------------------------------------------------------------------
-# Check Prerequisites
-# -----------------------------------------------------------------------------
+# Validate prerequisites
 echo ""
 echo "[1/4] Checking prerequisites..."
 
@@ -46,7 +24,7 @@ fi
 
 echo "✓ Found .env file"
 
-# Check if namespace exists
+# Create namespace if missing
 if ! kubectl get namespace pindrop &> /dev/null; then
     echo "Creating namespace 'pindrop'..."
     kubectl apply -f "$PROJECT_ROOT/k8s/manifests/namespace.yaml"
@@ -54,17 +32,14 @@ fi
 
 echo "✓ Namespace 'pindrop' exists"
 
-# -----------------------------------------------------------------------------
-# Read Required Variables from .env
-# -----------------------------------------------------------------------------
+# Load required values from .env
 echo ""
 echo "[2/4] Reading secrets from .env file..."
 
-# Source the .env file to get variables
-# Using a subshell to avoid polluting current environment
+# Load env vars
 source "$ENV_FILE"
 
-# Check required variables exist
+# Validate required env vars
 REQUIRED_VARS=(
     "SUPABASE_URL"
     "SUPABASE_SERVICE_ROLE_KEY"
@@ -92,20 +67,13 @@ fi
 
 echo "✓ All required variables found"
 
-# -----------------------------------------------------------------------------
-# Delete Existing Secret (if exists)
-# -----------------------------------------------------------------------------
+# Recreate secret cleanly
 echo ""
 echo "[3/4] Creating Kubernetes secret..."
 
-# Delete existing secret if it exists
 kubectl delete secret pindrop-secrets -n pindrop 2>/dev/null || true
 
-# -----------------------------------------------------------------------------
-# Create Secret
-# -----------------------------------------------------------------------------
-# Using kubectl create secret with --from-literal
-# kubectl handles base64 encoding automatically
+# Create secret (kubectl handles encoding)
 
 kubectl create secret generic pindrop-secrets \
     --namespace=pindrop \
@@ -120,9 +88,7 @@ kubectl create secret generic pindrop-secrets \
 
 echo "✓ Secret 'pindrop-secrets' created"
 
-# -----------------------------------------------------------------------------
-# Verify
-# -----------------------------------------------------------------------------
+# Verify secret exists
 echo ""
 echo "[4/4] Verifying secret..."
 

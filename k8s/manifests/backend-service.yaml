@@ -1,27 +1,4 @@
-# =============================================================================
-# KUBERNETES SERVICE - BACKEND
-# =============================================================================
-# A Service provides a stable network endpoint for a set of Pods.
-#
-# Why do we need Services?
-# - Pods are ephemeral: They get new IP addresses when restarted
-# - Services provide a stable DNS name and IP that doesn't change
-# - Services load balance traffic across multiple Pod replicas
-#
-# Service Types:
-# - ClusterIP (default): Only accessible within the cluster
-# - NodePort: Exposes on each node's IP at a static port
-# - LoadBalancer: Provisions external load balancer (cloud providers)
-#
-# For our setup:
-# - Backend uses ClusterIP (only needs to be reached by Ingress and frontend)
-# - The Ingress controller routes external traffic to this Service
-#
-# Usage:
-#   kubectl apply -f backend-service.yaml -n pindrop
-#   kubectl get services -n pindrop
-#   kubectl describe service backend -n pindrop
-# =============================================================================
+# Internal backend service
 
 apiVersion: v1
 kind: Service
@@ -32,29 +9,13 @@ metadata:
     app: pindrop
     component: backend
 spec:
-  # ---------------------------------------------------------------------------
-  # Service Type
-  # ---------------------------------------------------------------------------
-  # ClusterIP: Internal-only access (default)
-  # The Ingress will route external /api/* traffic to this service
+  # Ingress routes /api traffic here
   type: ClusterIP
-  
-  # ---------------------------------------------------------------------------
-  # Selector
-  # ---------------------------------------------------------------------------
-  # Which Pods receive traffic from this Service?
-  # Service finds Pods with matching labels
   selector:
     app: pindrop
     component: backend
-  
-  # ---------------------------------------------------------------------------
-  # Ports
-  # ---------------------------------------------------------------------------
   ports:
     - name: http
-      # Port the Service exposes (other services connect to this)
       port: 3001
-      # Port on the Pod to forward traffic to
       targetPort: 3001
       protocol: TCP

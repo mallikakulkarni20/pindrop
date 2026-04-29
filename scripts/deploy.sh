@@ -1,47 +1,22 @@
 #!/bin/bash
-# =============================================================================
-# DEPLOY PINDROP TO KUBERNETES
-# =============================================================================
-# This script deploys all Kubernetes manifests to the cluster.
-#
-# What it deploys:
-# 1. Namespace (if not exists)
-# 2. ConfigMap (non-sensitive configuration)
-# 3. Secrets (if they exist)
-# 4. Backend Deployment + Service
-# 5. Frontend Deployment + Service
-# 6. Ingress
-#
-# Prerequisites:
-# - Minikube running with Ingress addon
-# - Docker images built (./scripts/build-images.sh)
-# - Secrets created (./scripts/create-secrets.sh)
-#
-# Usage:
-#   chmod +x scripts/deploy.sh
-#   ./scripts/deploy.sh
-# =============================================================================
+# Deploy Kubernetes manifests for Pindrop
 
-set -e  # Exit on any error
+set -e  # Stop on first error
 
 echo "=============================================="
 echo "  Pindrop - Deploy to Kubernetes"
 echo "=============================================="
 
-# -----------------------------------------------------------------------------
-# Get Project Root Directory
-# -----------------------------------------------------------------------------
+# Resolve project paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 MANIFESTS_DIR="$PROJECT_ROOT/k8s/manifests"
 
-# -----------------------------------------------------------------------------
-# Check Prerequisites
-# -----------------------------------------------------------------------------
+# Prerequisite checks
 echo ""
 echo "[1/6] Checking prerequisites..."
 
-# Check if Minikube is running
+# Ensure Minikube is running
 if ! minikube status | grep -q "Running"; then
     echo "ERROR: Minikube is not running."
     echo "Start it with: ./scripts/minikube-setup.sh"
@@ -49,7 +24,7 @@ if ! minikube status | grep -q "Running"; then
 fi
 echo "✓ Minikube is running"
 
-# Check if images exist
+# Ensure images exist in Minikube docker daemon
 eval $(minikube docker-env)
 if ! docker images | grep -q "pindrop-backend"; then
     echo "ERROR: pindrop-backend image not found."
@@ -63,27 +38,21 @@ if ! docker images | grep -q "pindrop-frontend"; then
 fi
 echo "✓ Docker images exist"
 
-# -----------------------------------------------------------------------------
-# Apply Namespace
-# -----------------------------------------------------------------------------
+# Apply namespace
 echo ""
 echo "[2/6] Applying namespace..."
 
 kubectl apply -f "$MANIFESTS_DIR/namespace.yaml"
 echo "✓ Namespace applied"
 
-# -----------------------------------------------------------------------------
-# Apply ConfigMap
-# -----------------------------------------------------------------------------
+# Apply config
 echo ""
 echo "[3/6] Applying ConfigMap..."
 
 kubectl apply -f "$MANIFESTS_DIR/configmap.yaml"
 echo "✓ ConfigMap applied"
 
-# -----------------------------------------------------------------------------
-# Check Secrets
-# -----------------------------------------------------------------------------
+# Check secrets
 echo ""
 echo "[4/6] Checking secrets..."
 
@@ -100,9 +69,7 @@ else
     fi
 fi
 
-# -----------------------------------------------------------------------------
-# Apply Deployments and Services
-# -----------------------------------------------------------------------------
+# Apply deployments/services
 echo ""
 echo "[5/6] Applying Deployments and Services..."
 
@@ -114,18 +81,14 @@ kubectl apply -f "$MANIFESTS_DIR/frontend-deployment.yaml"
 kubectl apply -f "$MANIFESTS_DIR/frontend-service.yaml"
 echo "✓ Frontend deployed"
 
-# -----------------------------------------------------------------------------
-# Apply Ingress
-# -----------------------------------------------------------------------------
+# Apply ingress
 echo ""
 echo "[6/6] Applying Ingress..."
 
 kubectl apply -f "$MANIFESTS_DIR/ingress.yaml"
 echo "✓ Ingress applied"
 
-# -----------------------------------------------------------------------------
-# Wait for Pods to be Ready
-# -----------------------------------------------------------------------------
+# Wait for pods
 echo ""
 echo "Waiting for pods to be ready..."
 
@@ -134,9 +97,7 @@ kubectl wait --for=condition=ready pod \
     --namespace=pindrop \
     --timeout=120s
 
-# -----------------------------------------------------------------------------
-# Display Status
-# -----------------------------------------------------------------------------
+# Print status and access info
 echo ""
 echo "=============================================="
 echo "  Deployment Complete!"
