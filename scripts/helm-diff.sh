@@ -1,12 +1,5 @@
 #!/bin/bash
-# =============================================================================
-# HELM VALUES COMPARISON SCRIPT
-# =============================================================================
-# Compares dev vs prod Helm values to show the differences.
-#
-# Usage:
-#   ./scripts/helm-diff.sh
-# =============================================================================
+# Compare Helm dev vs prod values
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
@@ -21,12 +14,8 @@ echo "(< = dev only, > = prod only, different lines shown)"
 echo "----------------------------------------------"
 echo ""
 
-# Use diff to show differences
-# -y: side by side
-# --suppress-common-lines: only show differences
-diff -y --suppress-common-lines \
-    "$CHART_DIR/values.yaml" \
-    "$CHART_DIR/values-prod.yaml" || true
+# Side-by-side diff, showing only changes
+diff -y --suppress-common-lines     "$CHART_DIR/values.yaml"     "$CHART_DIR/values-prod.yaml" || true
 
 echo ""
 echo "----------------------------------------------"

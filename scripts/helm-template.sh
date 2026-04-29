@@ -1,18 +1,5 @@
 #!/bin/bash
-# =============================================================================
-# HELM TEMPLATE PREVIEW SCRIPT
-# =============================================================================
-# Shows what Kubernetes manifests Helm will generate WITHOUT deploying.
-#
-# This is useful for:
-# - Debugging: See the actual YAML that would be applied
-# - Review: Check what changes before deploying
-# - Learning: Understand how values become manifests
-#
-# Usage:
-#   ./scripts/helm-template.sh          # Preview with dev values
-#   ./scripts/helm-template.sh prod     # Preview with prod values
-# =============================================================================
+# Render Helm templates without applying to cluster
 
 set -e
 
@@ -33,14 +20,12 @@ echo "This shows what YAML would be generated (not applied)."
 echo "=============================================="
 echo ""
 
-# Determine values file
+# Choose values file
 if [ "$ENVIRONMENT" = "prod" ]; then
     VALUES_FILE="$CHART_DIR/values-prod.yaml"
 else
     VALUES_FILE="$CHART_DIR/values.yaml"
 fi
 
-# Render templates
-helm template $RELEASE_NAME "$CHART_DIR" \
-    --namespace $NAMESPACE \
-    --values "$VALUES_FILE"
+# Render chart
+helm template $RELEASE_NAME "$CHART_DIR"     --namespace $NAMESPACE     --values "$VALUES_FILE"

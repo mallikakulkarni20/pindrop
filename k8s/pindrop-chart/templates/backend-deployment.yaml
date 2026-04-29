@@ -1,30 +1,4 @@
-{{/*
-=============================================================================
-BACKEND DEPLOYMENT TEMPLATE
-=============================================================================
-This is the main template that demonstrates Helm's power.
-
-COMPARISON - Without Helm vs With Helm:
-
-WITHOUT HELM (hardcoded):
-  replicas: 1
-  image: pindrop-backend:latest
-  resources:
-    limits:
-      memory: "512Mi"
-
-WITH HELM (templated):
-  replicas: {{ .Values.backend.replicas }}
-  image: {{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}
-  resources:
-    {{- toYaml .Values.backend.resources | nindent 12 }}
-
-Now you can:
-- Deploy with 1 replica: helm install pindrop . 
-- Deploy with 3 replicas: helm install pindrop . --set backend.replicas=3
-- Deploy to production: helm install pindrop . -f values-prod.yaml
-=============================================================================
-*/}}
+{{/* Backend Deployment */}}
 
 apiVersion: apps/v1
 kind: Deployment
@@ -34,42 +8,38 @@ metadata:
   labels:
     {{- include "pindrop.backendLabels" . | nindent 4 }}
 spec:
-  # Number of replicas from values.yaml (default: 1, prod: 3)
+  # Replica count from values
   replicas: {{ .Values.backend.replicas }}
-  
-  # Selector must match pod template labels
+
+  # Must match pod template labels
   selector:
     matchLabels:
       {{- include "pindrop.backendSelectorLabels" . | nindent 6 }}
-  
-  # Rolling update strategy
+
   strategy:
     type: RollingUpdate
     rollingUpdate:
       maxSurge: 1
       maxUnavailable: 0
-  
-  # Pod template
+
   template:
     metadata:
       labels:
         {{- include "pindrop.backendSelectorLabels" . | nindent 8 }}
-      # Annotations trigger pod restart when ConfigMap changes
+      # Restart pods when configmap content changes
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
     spec:
       containers:
         - name: backend
-          # Image constructed from values
           image: {{ include "pindrop.backendImage" . }}
           imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
-          
+
           ports:
             - name: http
               containerPort: {{ .Values.backend.service.port }}
               protocol: TCP
-          
-          # Environment from ConfigMap and Secrets
+
           envFrom:
             {{- if .Values.configMap.create }}
             - configMapRef:
@@ -77,12 +47,10 @@ spec:
             {{- end }}
             - secretRef:
                 name: {{ .Values.secrets.name | default (printf "%s-secrets" (include "pindrop.fullname" .)) }}
-          
-          # Resources from values.yaml
+
           resources:
             {{- toYaml .Values.backend.resources | nindent 12 }}
-          
-          # Liveness probe
+
           livenessProbe:
             httpGet:
               path: {{ .Values.backend.healthCheck.path }}
@@ -91,8 +59,7 @@ spec:
             periodSeconds: {{ .Values.backend.healthCheck.periodSeconds }}
             timeoutSeconds: 5
             failureThreshold: 3
-          
-          # Readiness probe
+
           readinessProbe:
             httpGet:
               path: {{ .Values.backend.healthCheck.path }}
@@ -101,23 +68,20 @@ spec:
             periodSeconds: 10
             timeoutSeconds: 3
             failureThreshold: 3
-      
+
       restartPolicy: Always
       terminationGracePeriodSeconds: 30
-      
-      # Optional: Node selector from values
+
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      
-      # Optional: Tolerations from values
+
       {{- with .Values.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      
-      # Optional: Affinity from values
+
       {{- with .Values.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}

@@ -1,66 +1,25 @@
-# =============================================================================
-# HELM VALUES - DEVELOPMENT DEFAULTS
-# =============================================================================
-# This file contains DEFAULT configuration values for the Pindrop Helm chart.
-# These values are used when you run: helm install pindrop ./pindrop-chart
-#
-# HOW VALUES WORK:
-# ----------------
-# 1. Templates reference values using {{ .Values.key.subkey }}
-# 2. This file provides defaults
-# 3. You can override with:
-#    - Command line: helm install pindrop . --set backend.replicas=3
-#    - Override file: helm install pindrop . -f values-prod.yaml
-#
-# OVERRIDE PRECEDENCE (lowest to highest):
-# 1. values.yaml (this file - defaults)
-# 2. values-*.yaml files passed with -f
-# 3. --set flags on command line
-#
-# Example:
-#   values.yaml:      backend.replicas: 1
-#   values-prod.yaml: backend.replicas: 3
-#   Command line:     --set backend.replicas: 5
-#   Result:           backend.replicas = 5
-# =============================================================================
+# Default Helm values (dev-friendly)
 
-# -----------------------------------------------------------------------------
-# Global Settings
-# -----------------------------------------------------------------------------
-# These can be overridden by name/fullname overrides
+# Optional naming overrides
 nameOverride: ""
 fullnameOverride: ""
 
-# Namespace to deploy to (defaults to helm release namespace)
+# Defaults to release namespace when empty
 namespace: ""
 
-# -----------------------------------------------------------------------------
-# Backend Configuration
-# -----------------------------------------------------------------------------
 backend:
-  # Number of pod replicas
-  # Dev: 1 (sufficient for testing)
-  # Prod: 3+ (for high availability)
   replicas: 1
-  
-  # Container image settings
+
   image:
     repository: pindrop-backend
     tag: latest
-    # Image pull policy:
-    # - Never: Use local image (Minikube)
-    # - Always: Always pull from registry (production)
-    # - IfNotPresent: Pull only if not available locally
+    # Use local Minikube images by default
     pullPolicy: Never
-  
-  # Service configuration
+
   service:
     type: ClusterIP
     port: 3001
-  
-  # Resource limits and requests
-  # Requests: Guaranteed minimum resources (affects scheduling)
-  # Limits: Maximum resources allowed (prevents runaway containers)
+
   resources:
     requests:
       memory: "128Mi"
@@ -68,39 +27,30 @@ backend:
     limits:
       memory: "512Mi"
       cpu: "500m"
-  
-  # Health check configuration
+
   healthCheck:
     path: /health
     port: 3001
     initialDelaySeconds: 10
     periodSeconds: 30
-  
-  # Environment variables from ConfigMap
+
   env:
     NODE_ENV: "production"
     PORT: "3001"
     DB_SSL: "false"
 
-# -----------------------------------------------------------------------------
-# Frontend Configuration
-# -----------------------------------------------------------------------------
 frontend:
-  # Number of pod replicas
   replicas: 1
-  
-  # Container image settings
+
   image:
     repository: pindrop-frontend
     tag: latest
     pullPolicy: Never
-  
-  # Service configuration
+
   service:
     type: ClusterIP
     port: 80
-  
-  # Resource limits (frontend needs less than backend)
+
   resources:
     requests:
       memory: "64Mi"
@@ -108,53 +58,35 @@ frontend:
     limits:
       memory: "128Mi"
       cpu: "100m"
-  
-  # Health check configuration
+
   healthCheck:
     path: /health
     port: 80
     initialDelaySeconds: 5
     periodSeconds: 30
 
-# -----------------------------------------------------------------------------
-# Ingress Configuration
-# -----------------------------------------------------------------------------
 ingress:
-  # Enable/disable Ingress resource
   enabled: true
-  
-  # Ingress class name (nginx is standard)
   className: nginx
-  
-  # Annotations for the Ingress
+
   annotations:
     nginx.ingress.kubernetes.io/use-regex: "true"
     nginx.ingress.kubernetes.io/enable-cors: "true"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
-  
-  # Host configuration (empty = all hosts)
+
   host: ""
-  
-  # TLS configuration (disabled for dev)
+
   tls:
     enabled: false
     secretName: ""
 
-# -----------------------------------------------------------------------------
-# Secrets Configuration
-# -----------------------------------------------------------------------------
 secrets:
-  # If true, create a Secret resource from the values below
-  # If false, you must create the secret manually (recommended for production)
+  # If false, create secret outside Helm (recommended)
   create: false
-  
-  # Name of the secret (if not using auto-generated name)
   name: "pindrop-secrets"
-  
-  # Secret values (only used if secrets.create is true)
-  # WARNING: Don't put real secrets in values.yaml for production!
-  # Use: helm install ... --set secrets.data.SUPABASE_URL=xxx
+
+  # Only used when secrets.create=true
   data: {}
     # SUPABASE_URL: ""
     # SUPABASE_SERVICE_ROLE_KEY: ""
@@ -164,26 +96,13 @@ secrets:
     # GOOGLE_CLIENT_ID: ""
     # GOOGLE_CLIENT_SECRET: ""
 
-# -----------------------------------------------------------------------------
-# ConfigMap Configuration
-# -----------------------------------------------------------------------------
 configMap:
-  # If true, create a ConfigMap resource
   create: true
-  
-  # Additional data to include in ConfigMap
+
+  # Extra key/value config entries
   data: {}
 
-# -----------------------------------------------------------------------------
-# Pod Settings
-# -----------------------------------------------------------------------------
-# Affects how pods are scheduled and run
-
-# Node selector (deploy only to nodes with these labels)
+# Optional pod scheduling controls
 nodeSelector: {}
-
-# Tolerations (allow scheduling on tainted nodes)
 tolerations: []
-
-# Affinity rules (control pod placement)
 affinity: {}

@@ -1,9 +1,4 @@
-{{/*
-=============================================================================
-FRONTEND SERVICE TEMPLATE
-=============================================================================
-Creates a Service to expose the frontend pods.
-*/}}
+{{/* Frontend Service */}}
 
 apiVersion: v1
 kind: Service
