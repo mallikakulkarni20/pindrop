@@ -15,7 +15,7 @@ const USER_SELECT =
 
 // Step 1: Redirect user to Google consent screen
 router.get('/google', (req, res) => {
-  const apiUrl = process.env.API_URL || `http://localhost:${process.env.PORT || 3002}`;
+  const apiUrl = process.env.API_URL || `http://localhost:${process.env.PORT || 3001}`;
   const redirectUri = `${apiUrl}/api/auth/google/callback`;
   const authUrl = client.generateAuthUrl({
     access_type: 'offline',
@@ -34,7 +34,7 @@ router.get('/google/callback', async (req, res) => {
       return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=missing_code`);
     }
 
-    const apiUrl = process.env.API_URL || `http://localhost:${process.env.PORT || 3002}`;
+    const apiUrl = process.env.API_URL || `http://localhost:${process.env.PORT || 3001}`;
     const redirectUri = `${apiUrl}/api/auth/google/callback`;
     const { tokens } = await client.getToken({ code, redirect_uri: redirectUri });
     client.setCredentials({ access_token: tokens.access_token });
