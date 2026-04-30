@@ -35,9 +35,8 @@ For this project, we focused on making deployment reproducible and environment-a
 
 ## Relevant Code / Documentation Notes
 
-This repo is documented inline, but I kept comments focused on decisions instead of over-explaining syntax.
 
-Good files to review:
+important files to review:
 - `Dockerfile`: backend multi-stage image and non-root runtime user
 - `frontend/Dockerfile`: static frontend build + nginx runtime image
 - `frontend/nginx.conf`: SPA fallback and API proxy behavior
